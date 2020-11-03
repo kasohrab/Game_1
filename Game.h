@@ -8,6 +8,8 @@
 #include <SFML/Window.hpp>
 #include <SFML/Audio.hpp>
 #include <SFML/Network.hpp>
+#include <sstream>
+#include <filesystem>
 
 #ifndef GAME_1_GAME_H
 #define GAME_1_GAME_H
@@ -26,11 +28,20 @@ private:
     sf::VideoMode videoMode;
     //Mouse positions
     sf::Vector2i mousePosWindow;
+    sf::Vector2f mousePosView;
+    //Resources
+    sf::Font font;
+    //Text
+    sf::Text uiText;
     //Game Logic
-    int points;
+    bool endGame;
+    unsigned points;
+    int health;
     float enemySpawnTimer;
     float enemySpawnTimerMax;
     int maxEnemies;
+    bool mouseHeld;
+
     //Game objects
     std::vector<sf::RectangleShape> enemies;
     sf::RectangleShape enemy;
@@ -38,9 +49,11 @@ private:
     //Private functions
     void spawnEnemy();
     void updateEnemies();
-    void renderEnemies();
+    void renderEnemies(sf::RenderTarget& target);
     void initVariables();
     void initWindow();
+    void initFonts();
+    void initTexts();
     void initEnemies();
 
 public:
@@ -50,12 +63,15 @@ public:
 
     //Accessors
     const bool running();
+    const bool getEndGame();
 
     //Functions
     void update();
     void render();
     void pollEvents();
     void updateMousePositions();
+    void renderText(sf::RenderTarget& target);
+    void updateText();
 
 
 };

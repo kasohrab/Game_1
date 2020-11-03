@@ -9,10 +9,12 @@ void Game::initVariables() {
     this->window = nullptr;
 
     this->points = 0;
-    this->enemySpawnTimerMax = 1000.f;
+    this->enemySpawnTimerMax = 10.f;
     this->enemySpawnTimer = this->enemySpawnTimerMax;
-    this->maxEnemies = 5;
-
+    this->maxEnemies = 10;
+    this->mouseHeld = false;
+    this->health = 10;
+    this->endGame = false;
 
 }
 
@@ -31,10 +33,31 @@ void Game::initEnemies() {
     //scales down size by factor of .5
     this->enemy.setScale(sf::Vector2f(.5f, .5f));
     this->enemy.setFillColor(sf::Color::Cyan);
-    this->enemy.setOutlineColor(sf::Color::Green);
-    this->enemy.setOutlineThickness(1.f);
+    //this->enemy.setOutlineColor(sf::Color::Green);
+    //this->enemy.setOutlineThickness(1.f);
 
 
+}
+
+void Game::initFonts() {
+    std::stringstream fontPathName;
+    fontPathName << std::__fs::filesystem::current_path() ;
+    std::string pathName = fontPathName.str().substr(1);
+    pathName = pathName.substr(0,pathName.size()-1);
+    pathName += "/Fonts/Dosis-Light.ttf";
+    if (!this->font.loadFromFile(pathName)) {
+        std::cout << pathName;
+        std::cout <<"ERROR::GAME::INITFONTS: Failed to load.";
+    };
+
+}
+
+void Game::initTexts() {
+    this->uiText.setFont(this->font);
+    this->uiText.setPosition(0.f,0.f);
+    this->uiText.setCharacterSize(32);
+    this->uiText.setFillColor(sf::Color::White);
+    this->uiText.setString("NONE");
 }
 
 void Game::updateMousePositions() {
@@ -44,6 +67,7 @@ void Game::updateMousePositions() {
      */
 
      this->mousePosWindow = sf::Mouse::getPosition(*this->window);
+     this->mousePosView = this->window->mapPixelToCoords(this->mousePosWindow);
 }
 
 void Game::spawnEnemy() {
@@ -69,7 +93,7 @@ void Game::updateEnemies() {
      * @return void
      * Updates spawn timer and spawns enemies when the total amount is less than max enemies
      * Moves the enemies downwards
-     * Removes enemies at the edge of the screen. //TDO
+     * Removes enemies at the edge of the screen.
     */
     //Updating timer
     if (this->enemies.size() < this-> maxEnemies) {
@@ -82,23 +106,58 @@ void Game::updateEnemies() {
         }
     }
 
-    //Move the enemies
+    //Move and updating the enemies
+    for (int i = 0; i < this->enemies.size(); i++) {
+
+        this->enemies[i].move(0.f, 4.f);
+        //If enemy is below screen
+        if (this->enemies[i].getPosition().y > this->window->getSize().y) {
+            this->enemies.erase(this->enemies.begin() + i);
+            //Lose health
+            this->health -= 1;
+        }
+    }
+
+    //Check if clicked upon
+    if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+        if (this->mouseHeld == false) {
+            this->mouseHeld = true;
+            bool deleted = false;
+            //if in range of enemy
+            for (size_t i = 0; i < this->enemies.size() && deleted == false; i++) {
+                if (this->enemies[i].getGlobalBounds().contains(this->mousePosView)) {
+                    //Delete enemy
+                    deleted = true;
+                    this->enemies.erase(this->enemies.begin() + i);
+                    //Gain points
+                    this->points += 1;
+                }
+            }
+        }
+    }
+    //Makes it required to click on each enemy
+    else {
+        this->mouseHeld = false;
+    }
+
+}
+
+void Game::renderEnemies(sf::RenderTarget& target) {
     for (auto &e : this->enemies) {
-        e.move(0.f, 5.f);
+        target.draw(e);
     }
 }
 
-void Game::renderEnemies() {
-    for (auto &e : this->enemies) {
-        this->window->draw(e);
-    }
+void Game::renderText(sf::RenderTarget& target) {
+    target.draw(this->uiText);
 }
-
 
 //Constructors / Destructors
 Game::Game() {
     this->initVariables();
     this->initWindow();
+    this->initFonts();
+    this->initTexts();
     this->initEnemies();
 }
 
@@ -115,9 +174,17 @@ const bool Game::running() {
 void Game::update() {
     this->pollEvents();
 
-    this->updateMousePositions();
+    if (this->endGame == false) {
+        this->updateMousePositions();
 
-    this->updateEnemies();
+        this->updateEnemies();
+
+        this->updateText();
+    }
+
+    //End game condition
+    if (this-> health <= 0)
+        this->endGame = true;
 }
 
 void Game::pollEvents() {
@@ -147,11 +214,30 @@ void Game::render() {
     this->window->clear();
 
     //Draws game objects
-    this->renderEnemies();
+    this->renderText(*this->window);
+
+    this->renderEnemies(*this->window);
 
     this->window->display();
-
 }
+
+
+
+void Game::updateText() {
+    std::stringstream ss;
+    ss << "Points: " << this->points;
+    this->uiText.setString(ss.str());
+}
+
+const bool Game::getEndGame() {
+    return this->endGame;
+}
+
+
+
+
+
+
 
 
 
