@@ -9,18 +9,18 @@ void Game::initVariables() {
     this->window = nullptr;
 
     this->points = 0;
-    this->enemySpawnTimerMax = 10.f;
+    this->enemySpawnTimerMax = 20.f;
     this->enemySpawnTimer = this->enemySpawnTimerMax;
-    this->maxEnemies = 10;
+    this->maxEnemies = 7;
     this->mouseHeld = false;
-    this->health = 10;
+    this->health = 20;
     this->endGame = false;
 
 }
 
 void Game::initWindow() {
-    this->videoMode.height = 600;
-    this->videoMode.width = 800;
+    this->videoMode.height = 1000;
+    this->videoMode.width = 1200;
     this->window = new sf::RenderWindow(this->videoMode,"Game 1",
                                         sf::Style::Titlebar | sf::Style::Close);
     this->window->setFramerateLimit(60);
@@ -29,14 +29,11 @@ void Game::initWindow() {
 
 void Game::initEnemies() {
     this->enemy.setPosition(10.f,10.f);
-    this->enemy.setSize(sf::Vector2f(100.f, 100.f));
     //scales down size by factor of .5
-    this->enemy.setScale(sf::Vector2f(.5f, .5f));
+    this->enemy.setScale(sf::Vector2f(2.f, 2.f));
     this->enemy.setFillColor(sf::Color::Cyan);
     //this->enemy.setOutlineColor(sf::Color::Green);
     //this->enemy.setOutlineThickness(1.f);
-
-
 }
 
 void Game::initFonts() {
@@ -73,7 +70,8 @@ void Game::updateMousePositions() {
 void Game::spawnEnemy() {
     /**
      * @return void
-     * Spawns and sets enemy color and position
+     * Spawns and sets enemy color and position randomly
+     * Also sets their type in terms of difficulty (randomly)
      * Sets random position and color
      * Adds enemy to vector
     */
@@ -82,7 +80,39 @@ void Game::spawnEnemy() {
     this->enemy.setPosition(
             static_cast<float>(rand() % static_cast<int>((this->window->getSize().x) - this->enemy.getSize().x)),
             0.f);
-    this->enemy.setFillColor(sf::Color::Green);
+
+    //Randomize enemy type
+    int type = rand() % 5;
+
+    switch (type)
+    {
+        case 0:
+            this->enemy.setSize(sf::Vector2f(20.f, 20.f));
+            this->enemy.setFillColor(sf::Color::Magenta);
+            break;
+        case 1:
+            this->enemy.setSize(sf::Vector2f(30.f, 30.f));
+            this->enemy.setFillColor(sf::Color::Blue);
+            break;
+        case 2:
+            this->enemy.setSize(sf::Vector2f(50.f, 50.f));
+            this->enemy.setFillColor(sf::Color::Cyan);
+            break;
+        case 3:
+            this->enemy.setSize(sf::Vector2f(70.f, 70.f));
+            this->enemy.setFillColor(sf::Color::Red);
+            break;
+        case 4:
+            this->enemy.setSize(sf::Vector2f(100.f, 100.f));
+            this->enemy.setFillColor(sf::Color::Green);
+            break;
+        default:
+            //Testing case
+            //Should never actually be yellow
+            this->enemy.setSize(sf::Vector2f(100.f, 100.f));
+            this->enemy.setFillColor(sf::Color::Yellow);
+            break;
+    }
 
     //Spawn enemy
     this->enemies.push_back(this->enemy);
@@ -96,7 +126,7 @@ void Game::updateEnemies() {
      * Removes enemies at the edge of the screen.
     */
     //Updating timer
-    if (this->enemies.size() < this-> maxEnemies) {
+    if (this->enemies.size() < this->maxEnemies) {
         if (this->enemySpawnTimer >= this->enemySpawnTimerMax) {
             //spawn and reset timer
             this->spawnEnemy();
@@ -109,7 +139,7 @@ void Game::updateEnemies() {
     //Move and updating the enemies
     for (int i = 0; i < this->enemies.size(); i++) {
 
-        this->enemies[i].move(0.f, 4.f);
+        this->enemies[i].move(0.f, 4.5f);
         //If enemy is below screen
         if (this->enemies[i].getPosition().y > this->window->getSize().y) {
             this->enemies.erase(this->enemies.begin() + i);
@@ -126,11 +156,20 @@ void Game::updateEnemies() {
             //if in range of enemy
             for (size_t i = 0; i < this->enemies.size() && deleted == false; i++) {
                 if (this->enemies[i].getGlobalBounds().contains(this->mousePosView)) {
+                    //Gain points based on type of enemy
+                    if (this->enemies[i].getFillColor() == sf::Color::Magenta)
+                        this->points += 10;
+                    else if (this->enemies[i].getFillColor() == sf::Color::Blue)
+                        this->points += 7;
+                    else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
+                        this->points += 5;
+                    else if (this->enemies[i].getFillColor() == sf::Color::Red)
+                        this->points += 3;
+                    else if (this->enemies[i].getFillColor() == sf::Color::Green)
+                        this->points += 1;
                     //Delete enemy
                     deleted = true;
                     this->enemies.erase(this->enemies.begin() + i);
-                    //Gain points
-                    this->points += 1;
                 }
             }
         }
